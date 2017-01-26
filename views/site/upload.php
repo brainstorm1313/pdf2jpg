@@ -34,9 +34,13 @@ function uploadDone() {
 };
 
 function setProgress(data) {
-    $('#progressbar').html(data.progress+'%');
-    $('#progressbar').width(data.progress+'%');
-    $('#statusText').html(data.status);
+    if(data.progress) {
+        $('#progressbar').html(data.progress+'%');
+        $('#progressbar').width(data.progress+'%');
+    }
+    
+    if(data.status)
+        $('#statusText').html(data.status);
 }
 
 function checkStatus() {
@@ -60,11 +64,15 @@ $('#uploadForm').on('beforeSubmit', function(e) {
     $.ajax({
         type: "POST",
         data:  new FormData(this),
+        dataType: "json",
         processData: false,
         contentType: false,    
-        cache: false,            
+        cache: false,
         success: function (data) {
-            uploadDone();
+            if(data.error) {
+                setProgress({status: "Error! " + data.error})
+            } else 
+                uploadDone();
             $('#submitButton').prop('disabled', false);
             waiting = false;
         },

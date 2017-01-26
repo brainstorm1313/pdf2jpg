@@ -49,12 +49,20 @@ class Folder extends \yii\db\ActiveRecord
         $expiredSecondsAgo = 30*60; //30 минут назад
         $folders = self::find()->where(['<','unixtime',(time()-$expiredSecondsAgo)])->all(); //ищем все, что старее 30 минут назад.
 
-        foreach ($folders as $f) {
-            if(file_exists($f->folderNameAbsolute))
-                self::removeDirectory($f->folderNameAbsolute); // чистим рекурсивно каталог
-            if(!$f->delete()) //удаляем запись
-                throw new Exception('Error on delete folder row', 500);
+        foreach ($folders as $f) { //удаляем поштучно, чтобы сработали триггеры before delete
+            $f->delete();
+        }
+    }
 
+    public function beforeDelete()
+    {
+        if(file_exists($this->folderNameAbsolute))
+            self::removeDirectory($this->folderNameAbsolute); // чистим рекурсивно каталог
+
+        if (parent::beforeDelete()) {
+            return true;
+        } else {
+            return false;
         }
     }
 

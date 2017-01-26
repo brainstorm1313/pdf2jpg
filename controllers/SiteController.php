@@ -168,6 +168,7 @@ class SiteController extends Controller
     }
 
     public function actionUpload() { //загрузка файла
+        Folder::cleanOldFolders();
 
         $model = new UploadForm();
 
@@ -193,6 +194,10 @@ class SiteController extends Controller
 
                 $im = new \Imagick("{$model->folderNameAbsolute}/source.pdf");
                 $pagesCount = $im->getNumberImages();
+                if($pagesCount>Yii::$app->params['pdfMaxPageCount']) {
+                    $folder->delete();
+                    return json_encode(['error' => "Page's count is too big"]);
+                }
 
                 // конвертируем PDF в картинки постранично
                 for($i = 0;$i < $pagesCount; $i++) {
@@ -200,8 +205,18 @@ class SiteController extends Controller
                     $folder->status = "processing ".($i+1)."/$pagesCount page";
                     $folder->progress = 10+($i+1)/$pagesCount*(100-10);
                     $folder->save(false); //сохраняем данные для отображение прогрессбара
-
                     $im->setIteratorIndex($i);
+                    if(Yii::$app->params['pdfOriantation']) { //проверим на ориентацию каждую страницу
+                        $geo=$im->getImageGeometry();
+                        $pdfOriantation = Yii::$app->params['pdfOriantation'];
+                        if(    (Yii::$app->params['pdfOriantation'] === 'portrait' && $geo['width']>$geo['height'])
+                            || (Yii::$app->params['pdfOriantation'] === 'landscape' && $geo['width']<$geo['height'])
+                        ) {
+                            $folder->delete();
+                            return json_encode(['error' => "Oriantation is not \"$pdfOriantation\""]);
+                        }
+                    }
+
                     $im->setImageFormat('jpeg');
 
                     $im->writeImage("{$model->folderNameAbsolute}/images/".str_pad($i,5,'0',STR_PAD_LEFT).'.jpg');

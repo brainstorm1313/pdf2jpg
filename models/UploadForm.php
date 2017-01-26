@@ -39,6 +39,8 @@ class UploadForm extends Model
     {
         return [
             [['pdfFile'], 'file', 'skipOnEmpty' => false, 'extensions' => 'pdf'],
+            ['pdfFile', 'file', 'extensions' => 'pdf', 'maxSize' => \Yii::$app->params['pdfMaxSize'], 'tooBig' => 'File is too big.'],
+
             [['clientKey'], 'integer'],
             ['clientKey', 'match', 'pattern' => '/^\d*$/i'], //защита от попыток записать что-то не то
         ];
